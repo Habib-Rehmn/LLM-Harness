@@ -1,0 +1,16 @@
+{
+  "$schema": "../../schemas/plugin-v1.schema.json",
+  "apiVersion": "forge.dev/v1",
+  "name": "contract-plugin",
+  "version": "0.1.0",
+  "runtime": "trusted",
+  "entrypoint": "./lib/index.js",
+  "requires": {
+    "answer-service": "^1.0.0"
+  },
+  "provides": ["example-greeting"],
+  "contributes": {
+    "examples": ["greeting"]
+  },
+  "permissions": {}
+}

@@ -1,0 +1,13 @@
+packages:
+  - "apps/*"
+  - "packages/*/*"
+  - "examples/*"
+
+allowBuilds:
+  esbuild: true
+
+catalog:
+  "@deepseek-ai/cordis": "4.0.1"
+  "@types/node": "22.19.0"
+  "typescript": "7.0.2"
+  "vitest": "4.1.11"

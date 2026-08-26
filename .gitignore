@@ -1,0 +1,11 @@
+node_modules/
+.pnpm-store/
+lib/
+coverage/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+.forge/
+!.forge/README.md
+project.md

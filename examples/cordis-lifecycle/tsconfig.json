@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib",
+    "tsBuildInfoFile": "lib/cordis-lifecycle.tsbuildinfo"
+  },
+  "include": ["src/**/*.ts"]
+}

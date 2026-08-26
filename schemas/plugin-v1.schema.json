@@ -1,0 +1,68 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://forge.dev/schemas/plugin-v1.schema.json",
+  "title": "Forge plugin manifest v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["apiVersion", "name", "version", "runtime", "entrypoint"],
+  "properties": {
+    "$schema": { "type": "string", "format": "uri-reference" },
+    "apiVersion": { "const": "forge.dev/v1" },
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$",
+      "maxLength": 64
+    },
+    "version": { "type": "string", "minLength": 1 },
+    "runtime": { "enum": ["trusted", "process"] },
+    "entrypoint": { "type": "string", "pattern": "^\\./" },
+    "requires": { "$ref": "#/$defs/serviceRanges" },
+    "optional": { "$ref": "#/$defs/serviceRanges" },
+    "provides": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/name" },
+      "uniqueItems": true
+    },
+    "contributes": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": { "type": "string", "minLength": 1 },
+        "uniqueItems": true
+      }
+    },
+    "permissions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "filesystem": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "read": { "$ref": "#/$defs/stringList" },
+            "write": { "$ref": "#/$defs/stringList" }
+          }
+        },
+        "network": { "$ref": "#/$defs/stringList" },
+        "secrets": { "$ref": "#/$defs/stringList" },
+        "subprocess": { "type": "boolean" }
+      }
+    }
+  },
+  "$defs": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+    },
+    "serviceRanges": {
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/name" },
+      "additionalProperties": { "type": "string", "minLength": 1 }
+    },
+    "stringList": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    }
+  }
+}

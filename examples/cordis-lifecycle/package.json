@@ -1,0 +1,9 @@
+{
+  "name": "@forge-example/cordis-lifecycle",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@deepseek-ai/cordis": "catalog:"
+  }
+}
