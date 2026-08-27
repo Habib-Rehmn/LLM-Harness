@@ -42,6 +42,15 @@ importers:
         specifier: 'catalog:'
         version: 4.0.1
 
+  packages/kernel/context:
+    dependencies:
+      '@deepseek-ai/cordis':
+        specifier: 'catalog:'
+        version: 4.0.1
+      '@forge/kernel-contracts':
+        specifier: workspace:*
+        version: link:../contracts
+
   packages/kernel/contracts: {}
 
 packages:

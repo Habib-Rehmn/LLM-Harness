@@ -8,6 +8,11 @@ describe('kernel contracts', () => {
     expect(Object.isFrozen(token)).toBe(true);
   });
 
+  it('supports namespaced service identifiers and typed cardinality', () => {
+    const token = serviceToken<string>('forge.context-provider', 'multiple');
+    expect(token).toEqual({ id: 'forge.context-provider', cardinality: 'multiple' });
+  });
+
   it('rejects unstable plugin identifiers', () => {
     expect(() => pluginName('Bad Plugin')).toThrowError(ForgeError);
     expect(pluginName('example-plugin')).toBe('example-plugin');
