@@ -1,0 +1,12 @@
+{
+  "$schema": "../../../../../schemas/plugin-v1.schema.json",
+  "apiVersion": "forge.dev/v1",
+  "name": "valid-consumer",
+  "version": "1.0.0",
+  "runtime": "trusted",
+  "entrypoint": "./plugin.mjs",
+  "requires": {
+    "core.service": "^1.0.0"
+  },
+  "provides": ["app.service"]
+}

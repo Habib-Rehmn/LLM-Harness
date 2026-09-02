@@ -1,0 +1,7 @@
+{
+  "apiVersion": "forge.dev/v2",
+  "name": "incompatible-api",
+  "version": "1.0.0",
+  "runtime": "trusted",
+  "entrypoint": "./plugin.mjs"
+}

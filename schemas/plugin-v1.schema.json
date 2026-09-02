@@ -20,7 +20,7 @@
     "optional": { "$ref": "#/$defs/serviceRanges" },
     "provides": {
       "type": "array",
-      "items": { "$ref": "#/$defs/name" },
+      "items": { "$ref": "#/$defs/serviceId" },
       "uniqueItems": true
     },
     "contributes": {
@@ -47,6 +47,13 @@
         "secrets": { "$ref": "#/$defs/stringList" },
         "subprocess": { "type": "boolean" }
       }
+    },
+    "extensions": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)*/[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+      },
+      "additionalProperties": true
     }
   },
   "$defs": {
@@ -54,9 +61,13 @@
       "type": "string",
       "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
     },
+    "serviceId": {
+      "type": "string",
+      "pattern": "^[a-z0-9]+(?:[.-][a-z0-9]+)*$"
+    },
     "serviceRanges": {
       "type": "object",
-      "propertyNames": { "$ref": "#/$defs/name" },
+      "propertyNames": { "$ref": "#/$defs/serviceId" },
       "additionalProperties": { "type": "string", "minLength": 1 }
     },
     "stringList": {

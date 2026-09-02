@@ -1,0 +1,11 @@
+export const plugin = {
+  manifest: {
+    apiVersion: 'forge.dev/v1',
+    name: 'alpha-observer',
+    version: '1.0.0',
+    runtime: 'trusted',
+    entrypoint: './plugin.mjs',
+    optional: { 'missing.optional': '^1.0.0' },
+  },
+  setup() {},
+};

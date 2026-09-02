@@ -76,6 +76,7 @@ interface SharedContextState {
 
 interface ContextConstructionOptions extends ScopeOptions {
   readonly parent: CordisForgeContext | undefined;
+  readonly serviceTarget?: CordisForgeContext;
 }
 
 function scopeId(sequence: number): ScopeId {
@@ -129,6 +130,7 @@ export class CordisForgeContext implements ForgeContext {
   readonly #parent: CordisForgeContext | undefined;
   readonly #parentPlugin: PluginName | undefined;
   readonly #shared: SharedContextState;
+  readonly #serviceTarget: CordisForgeContext;
   readonly #children: CordisForgeContext[] = [];
   readonly #bindings = new Map<ServiceId, ServiceBinding[]>();
   readonly #owned: OwnedRegistration[] = [];
@@ -150,6 +152,7 @@ export class CordisForgeContext implements ForgeContext {
     this.#shared = shared;
     this.#parent = options.parent;
     this.#parentPlugin = options.parentPlugin;
+    this.#serviceTarget = options.serviceTarget ?? this;
     this.name = normalizedName;
     this.id = scopeId(shared.nextScopeSequence++);
 
@@ -175,6 +178,19 @@ export class CordisForgeContext implements ForgeContext {
     return root;
   }
 
+  static createPluginScope(parent: CordisForgeContext, options: ScopeOptions): CordisForgeContext {
+    parent.#assertActive();
+    const root = parent.#shared.scopes.get(parent.#shared.rootScopeId);
+    if (!root) {
+      throw new ForgeError('INVARIANT_VIOLATION', 'Forge root context is not available');
+    }
+    return new CordisForgeContext(parent.#cordis.extend({}), parent.#shared, {
+      ...options,
+      parent,
+      serviceTarget: root,
+    });
+  }
+
   get disposed(): boolean {
     return this.#disposed;
   }
@@ -186,7 +202,7 @@ export class CordisForgeContext implements ForgeContext {
     this.#assertActive();
     this.#assertTokenCardinality(token);
 
-    const current = this.#activeBindings(token.id);
+    const current = this.#serviceTarget.#activeBindings(token.id);
     if (token.cardinality === 'exclusive' && current.length > 0) {
       throw new ForgeError(
         'SERVICE_CONFLICT',
@@ -209,14 +225,14 @@ export class CordisForgeContext implements ForgeContext {
       dispose: async () => {
         if (!binding.active) return;
         binding.active = false;
-        this.#removeBinding(binding);
+        this.#serviceTarget.#removeBinding(binding);
         await disposeCordis();
       },
     };
 
-    const bindings = this.#bindings.get(token.id) ?? [];
+    const bindings = this.#serviceTarget.#bindings.get(token.id) ?? [];
     bindings.push(binding as ServiceBinding);
-    this.#bindings.set(token.id, bindings);
+    this.#serviceTarget.#bindings.set(token.id, bindings);
     this.#owned.push(binding);
 
     return Object.freeze({ dispose: binding.dispose });
@@ -720,4 +736,14 @@ export class CordisForgeContext implements ForgeContext {
 
 export function createForgeContext(name = 'root'): ForgeContext {
   return CordisForgeContext.createRoot(name);
+}
+
+export function createPluginContext(parent: ForgeContext, options: ScopeOptions): ForgeContext {
+  if (!(parent instanceof CordisForgeContext)) {
+    throw new ForgeError(
+      'INVARIANT_VIOLATION',
+      'Plugin contexts require a Cordis-backed Forge context',
+    );
+  }
+  return CordisForgeContext.createPluginScope(parent, options);
 }

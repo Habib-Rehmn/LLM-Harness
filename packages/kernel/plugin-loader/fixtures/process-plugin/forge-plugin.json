@@ -1,0 +1,7 @@
+{
+  "apiVersion": "forge.dev/v1",
+  "name": "process-plugin",
+  "version": "1.0.0",
+  "runtime": "process",
+  "entrypoint": "./plugin.mjs"
+}

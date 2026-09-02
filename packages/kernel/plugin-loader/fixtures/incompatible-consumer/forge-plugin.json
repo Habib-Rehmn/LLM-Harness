@@ -1,0 +1,8 @@
+{
+  "apiVersion": "forge.dev/v1",
+  "name": "incompatible-consumer",
+  "version": "1.0.0",
+  "runtime": "trusted",
+  "entrypoint": "./plugin.mjs",
+  "requires": { "core.service": "^2.0.0" }
+}

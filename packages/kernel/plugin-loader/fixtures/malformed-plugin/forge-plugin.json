@@ -1,0 +1,8 @@
+{
+  "apiVersion": "forge.dev/v1",
+  "name": "malformed-plugin",
+  "version": "1.0.0",
+  "runtime": "trusted",
+  "entrypoint": "./plugin.mjs",
+  "unknownField": true
+}

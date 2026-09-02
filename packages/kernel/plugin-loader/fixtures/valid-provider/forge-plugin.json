@@ -1,0 +1,9 @@
+{
+  "$schema": "../../../../../schemas/plugin-v1.schema.json",
+  "apiVersion": "forge.dev/v1",
+  "name": "valid-provider",
+  "version": "1.2.0",
+  "runtime": "trusted",
+  "entrypoint": "./plugin.mjs",
+  "provides": ["core.service"]
+}

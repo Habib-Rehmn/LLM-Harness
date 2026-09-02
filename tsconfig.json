@@ -3,6 +3,7 @@
   "references": [
     { "path": "./packages/kernel/contracts" },
     { "path": "./packages/kernel/context" },
+    { "path": "./packages/kernel/plugin-loader" },
     { "path": "./examples/contract-plugin" },
     { "path": "./examples/cordis-lifecycle" },
     { "path": "./examples/interception-chain" }

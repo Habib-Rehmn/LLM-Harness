@@ -102,6 +102,7 @@ export interface PluginManifest {
   readonly provides?: readonly string[];
   readonly contributes?: Readonly<Record<string, readonly string[]>>;
   readonly permissions?: PluginPermissions;
+  readonly extensions?: Readonly<Record<string, unknown>>;
 }
 
 export interface ScopeOptions {
@@ -220,6 +221,7 @@ export type ForgeErrorCode =
   | 'CANCELLED'
   | 'INVALID_MANIFEST'
   | 'INCOMPATIBLE_API'
+  | 'INCOMPATIBLE_SERVICE'
   | 'MISSING_SERVICE'
   | 'SERVICE_CONFLICT'
   | 'EVENT_CONFLICT'
@@ -227,6 +229,7 @@ export type ForgeErrorCode =
   | 'DEPENDENCY_CYCLE'
   | 'PLUGIN_LOAD_FAILED'
   | 'PLUGIN_DISPOSE_FAILED'
+  | 'PLUGIN_NOT_FOUND'
   | 'CONTEXT_DISPOSED'
   | 'CONTEXT_DISPOSE_FAILED'
   | 'INVARIANT_VIOLATION';

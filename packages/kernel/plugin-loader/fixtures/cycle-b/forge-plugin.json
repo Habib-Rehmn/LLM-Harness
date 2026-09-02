@@ -1,0 +1,9 @@
+{
+  "apiVersion": "forge.dev/v1",
+  "name": "cycle-b",
+  "version": "1.0.0",
+  "runtime": "trusted",
+  "entrypoint": "./plugin.mjs",
+  "requires": { "cycle.service-a": "^1.0.0" },
+  "provides": ["cycle.service-b"]
+}
