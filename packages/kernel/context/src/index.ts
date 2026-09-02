@@ -1,16 +1,33 @@
 import { Context as CordisContext } from '@deepseek-ai/cordis';
 import {
   ForgeError,
+  cancellation as createCancellation,
+  type BroadcastEventListener,
+  type BroadcastEventToken,
+  type DecisionEventListener,
+  type DecisionEventToken,
+  type EventGraphInspection,
+  type EventId,
+  type EventInspection,
+  type EventKind,
+  type EventListenerOptions,
+  type ForgeCancellation,
   type ForgeContext,
+  type ForgeDecision,
   type ForgeDisposable,
   type PluginName,
+  type ResolvedForgeDecision,
   type ScopeId,
   type ScopeOptions,
+  type SerialEventListener,
+  type SerialEventToken,
   type ServiceCardinality,
   type ServiceGraphInspection,
   type ServiceId,
   type ServiceInspection,
   type ServiceToken,
+  type WaterfallEventListener,
+  type WaterfallEventToken,
 } from '@forge/kernel-contracts';
 
 interface OwnedRegistration {
@@ -26,9 +43,32 @@ interface ServiceBinding<T = unknown> extends OwnedRegistration {
   readonly scopeId: ScopeId;
 }
 
+interface EventBinding extends OwnedRegistration {
+  readonly eventId: EventId;
+  readonly kind: EventKind;
+  readonly scopeId: ScopeId;
+}
+
+interface CordisEventBridge {
+  on(
+    name: string,
+    listener: (...args: unknown[]) => unknown,
+    options?: { readonly prepend?: boolean; readonly global?: boolean },
+  ): () => boolean;
+  parallel(name: string, ...args: unknown[]): Promise<void>;
+  serial(name: string, ...args: unknown[]): Promise<unknown>;
+  waterfall(name: string, ...args: unknown[]): unknown;
+}
+
+interface SerialResultEnvelope<Result> {
+  readonly value: Result;
+}
+
 interface SharedContextState {
   readonly scopes: Map<ScopeId, CordisForgeContext>;
   readonly cardinalities: Map<ServiceId, ServiceCardinality>;
+  readonly eventKinds: Map<EventId, EventKind>;
+  readonly events: Map<EventId, EventBinding[]>;
   nextScopeSequence: number;
   nextRegistrationSequence: number;
   rootScopeId: ScopeId;
@@ -44,6 +84,41 @@ function scopeId(sequence: number): ScopeId {
 
 function freezeList<T extends object>(values: T[]): readonly Readonly<T>[] {
   return Object.freeze(values.map((value) => Object.freeze(value)));
+}
+
+const NEVER_CANCELLED = createCancellation(new AbortController().signal);
+
+const DECISION_RANK: Readonly<Record<ResolvedForgeDecision, number>> = Object.freeze({
+  allow: 0,
+  ask: 1,
+  deny: 2,
+});
+
+function eventName(id: EventId): string {
+  return `forge/${id}`;
+}
+
+function strictestDecision(
+  left: ResolvedForgeDecision,
+  right: ResolvedForgeDecision,
+): ResolvedForgeDecision {
+  return DECISION_RANK[left] >= DECISION_RANK[right] ? left : right;
+}
+
+function assertResolvedDecision(value: unknown): asserts value is ResolvedForgeDecision {
+  if (value !== 'allow' && value !== 'ask' && value !== 'deny') {
+    throw new ForgeError('INVARIANT_VIOLATION', 'Decision terminal returned an invalid result', {
+      value,
+    });
+  }
+}
+
+function assertDecision(value: unknown): asserts value is ForgeDecision {
+  if (value !== 'allow' && value !== 'ask' && value !== 'deny' && value !== 'delegate') {
+    throw new ForgeError('INVARIANT_VIOLATION', 'Decision listener returned an invalid result', {
+      value,
+    });
+  }
 }
 
 export class CordisForgeContext implements ForgeContext {
@@ -86,6 +161,8 @@ export class CordisForgeContext implements ForgeContext {
     const shared: SharedContextState = {
       scopes: new Map(),
       cardinalities: new Map(),
+      eventKinds: new Map(),
+      events: new Map(),
       nextScopeSequence: 1,
       nextRegistrationSequence: 1,
       rootScopeId: '' as ScopeId,
@@ -175,6 +252,148 @@ export class CordisForgeContext implements ForgeContext {
     return this.#resolveExclusive<T>(token.id)?.value;
   }
 
+  on<Payload>(
+    event: BroadcastEventToken<Payload>,
+    listener: BroadcastEventListener<Payload>,
+    options?: EventListenerOptions,
+  ): ForgeDisposable;
+  on<Payload, Result>(
+    event: SerialEventToken<Payload, Result>,
+    listener: SerialEventListener<Payload, Result>,
+    options?: EventListenerOptions,
+  ): ForgeDisposable;
+  on<Payload, Result>(
+    event: WaterfallEventToken<Payload, Result>,
+    listener: WaterfallEventListener<Payload, Result>,
+    options?: EventListenerOptions,
+  ): ForgeDisposable;
+  on<Payload>(
+    event: DecisionEventToken<Payload>,
+    listener: DecisionEventListener<Payload>,
+    options?: EventListenerOptions,
+  ): ForgeDisposable;
+  on(
+    event:
+      | BroadcastEventToken<unknown>
+      | SerialEventToken<unknown, unknown>
+      | WaterfallEventToken<unknown, unknown>
+      | DecisionEventToken<unknown>,
+    listener: unknown,
+    options: EventListenerOptions = {},
+  ): ForgeDisposable {
+    this.#assertActive();
+    this.#assertEventKind(event.id, event.kind);
+    if (typeof listener !== 'function') {
+      throw new ForgeError('INVARIANT_VIOLATION', `Listener for ${event.id} must be a function`);
+    }
+
+    const adapter = this.#createEventAdapter(event.kind, listener);
+    const cordisOptions = options.prepend ? { prepend: true, global: true } : { global: true };
+    const disposeCordis = this.#events.on(eventName(event.id), adapter, cordisOptions);
+    const registrationId = `registration-${this.#shared.nextRegistrationSequence++}`;
+
+    const binding: EventBinding = {
+      id: registrationId,
+      eventId: event.id,
+      kind: event.kind,
+      scopeId: this.id,
+      active: true,
+      dispose: async () => {
+        if (!binding.active) return;
+        binding.active = false;
+        this.#removeEventBinding(binding);
+        disposeCordis();
+      },
+    };
+
+    const bindings = this.#shared.events.get(event.id) ?? [];
+    if (options.prepend) bindings.unshift(binding);
+    else bindings.push(binding);
+    this.#shared.events.set(event.id, bindings);
+    this.#owned.push(binding);
+    return Object.freeze({ dispose: binding.dispose });
+  }
+
+  async broadcast<Payload>(
+    event: BroadcastEventToken<Payload>,
+    payload: Payload,
+    cancellation: ForgeCancellation = NEVER_CANCELLED,
+  ): Promise<void> {
+    this.#assertActive();
+    this.#assertEventKind(event.id, event.kind);
+    cancellation.throwIfCancelled();
+    await this.#events.parallel(eventName(event.id), payload, cancellation);
+    cancellation.throwIfCancelled();
+  }
+
+  async serial<Payload, Result>(
+    event: SerialEventToken<Payload, Result>,
+    payload: Payload,
+    cancellation: ForgeCancellation = NEVER_CANCELLED,
+  ): Promise<Result | undefined> {
+    this.#assertActive();
+    this.#assertEventKind(event.id, event.kind);
+    cancellation.throwIfCancelled();
+    const envelope = (await this.#events.serial(eventName(event.id), payload, cancellation)) as
+      | SerialResultEnvelope<Result>
+      | undefined;
+    cancellation.throwIfCancelled();
+    return envelope?.value;
+  }
+
+  async waterfall<Payload, Result>(
+    event: WaterfallEventToken<Payload, Result>,
+    payload: Payload,
+    terminal: (payload: Payload, cancellation: ForgeCancellation) => Result | Promise<Result>,
+    cancellation: ForgeCancellation = NEVER_CANCELLED,
+  ): Promise<Result> {
+    this.#assertActive();
+    this.#assertEventKind(event.id, event.kind);
+    cancellation.throwIfCancelled();
+    const result = await this.#events.waterfall(
+      eventName(event.id),
+      payload,
+      cancellation,
+      async () => {
+        cancellation.throwIfCancelled();
+        const value = await terminal(payload, cancellation);
+        cancellation.throwIfCancelled();
+        return value;
+      },
+    );
+    cancellation.throwIfCancelled();
+    return result as Result;
+  }
+
+  async decide<Payload>(
+    event: DecisionEventToken<Payload>,
+    payload: Payload,
+    terminal: (
+      payload: Payload,
+      cancellation: ForgeCancellation,
+    ) => ResolvedForgeDecision | Promise<ResolvedForgeDecision>,
+    cancellation: ForgeCancellation = NEVER_CANCELLED,
+  ): Promise<ResolvedForgeDecision> {
+    this.#assertActive();
+    this.#assertEventKind(event.id, event.kind);
+    cancellation.throwIfCancelled();
+    const result = await this.#events.waterfall(
+      eventName(event.id),
+      payload,
+      cancellation,
+      async () => {
+        cancellation.throwIfCancelled();
+        const decision = await terminal(payload, cancellation);
+        assertResolvedDecision(decision);
+        cancellation.throwIfCancelled();
+        return decision;
+      },
+    );
+    assertResolvedDecision(result);
+    cancellation.throwIfCancelled();
+    return result;
+  }
+
   effect(dispose: () => void | Promise<void>): void {
     this.#assertActive();
     const registrationId = `registration-${this.#shared.nextRegistrationSequence++}`;
@@ -255,6 +474,27 @@ export class CordisForgeContext implements ForgeContext {
     });
   }
 
+  inspectEvents(): EventGraphInspection {
+    this.#assertActive();
+    const events: EventInspection[] = [];
+    for (const [id, bindings] of this.#shared.events) {
+      const active = bindings.filter((binding) => binding.active);
+      if (active.length === 0) continue;
+      events.push(
+        Object.freeze({
+          id,
+          kind: active[0]?.kind ?? this.#shared.eventKinds.get(id) ?? 'broadcast',
+          listeners: Object.freeze(
+            active.map((binding) =>
+              Object.freeze({ registrationId: binding.id, scopeId: binding.scopeId }),
+            ),
+          ),
+        }),
+      );
+    }
+    return Object.freeze({ events: Object.freeze(events) });
+  }
+
   dispose(): Promise<void> {
     if (!this.#disposePromise) {
       this.#disposePromise = this.#disposeInternal();
@@ -326,6 +566,97 @@ export class CordisForgeContext implements ForgeContext {
     }
   }
 
+  #assertEventKind(id: EventId, kind: EventKind): void {
+    const known = this.#shared.eventKinds.get(id);
+    if (known && known !== kind) {
+      throw new ForgeError('EVENT_CONFLICT', `Event ${id} is already declared as ${known}`, {
+        eventId: id,
+        expected: known,
+        received: kind,
+      });
+    }
+    this.#shared.eventKinds.set(id, kind);
+  }
+
+  #createEventAdapter(kind: EventKind, listener: unknown): (...args: unknown[]) => unknown {
+    if (kind === 'broadcast') {
+      const typed = listener as BroadcastEventListener<unknown>;
+      return async (payload, cancellation) => {
+        const token = cancellation as ForgeCancellation;
+        token.throwIfCancelled();
+        await typed(payload, token);
+        token.throwIfCancelled();
+      };
+    }
+
+    if (kind === 'serial') {
+      const typed = listener as SerialEventListener<unknown, unknown>;
+      return async (payload, cancellation) => {
+        const token = cancellation as ForgeCancellation;
+        token.throwIfCancelled();
+        const value = await typed(payload, token);
+        token.throwIfCancelled();
+        return value === undefined ? undefined : Object.freeze({ value });
+      };
+    }
+
+    if (kind === 'waterfall') {
+      const typed = listener as WaterfallEventListener<unknown, unknown>;
+      return async (payload, cancellation, next) => {
+        const token = cancellation as ForgeCancellation;
+        token.throwIfCancelled();
+        const guardedNext = this.#singleUseNext(next as () => unknown, token);
+        const value = await typed(payload, guardedNext, token);
+        token.throwIfCancelled();
+        return value;
+      };
+    }
+
+    const typed = listener as DecisionEventListener<unknown>;
+    return async (payload, cancellation, next) => {
+      const token = cancellation as ForgeCancellation;
+      token.throwIfCancelled();
+      const guardedNext = this.#singleUseNext<ResolvedForgeDecision>(next as () => unknown, token);
+      let downstream: Promise<ResolvedForgeDecision> | undefined;
+      const trackedNext = (): Promise<ResolvedForgeDecision> => {
+        downstream = guardedNext();
+        return downstream;
+      };
+      const ownDecision = await typed(payload, trackedNext, token);
+      assertDecision(ownDecision);
+      token.throwIfCancelled();
+
+      if (ownDecision === 'deny' && !downstream) return 'deny';
+      const delegated = downstream ?? trackedNext();
+      const downstreamDecision = await delegated;
+      assertResolvedDecision(downstreamDecision);
+      token.throwIfCancelled();
+      return ownDecision === 'delegate'
+        ? downstreamDecision
+        : strictestDecision(ownDecision, downstreamDecision);
+    };
+  }
+
+  #singleUseNext<Result>(
+    next: () => unknown,
+    cancellation: ForgeCancellation,
+  ): () => Promise<Result> {
+    let called = false;
+    return async () => {
+      if (called) {
+        throw new ForgeError(
+          'EVENT_NEXT_CALLED_MULTIPLE',
+          'A waterfall listener may call next() only once',
+        );
+      }
+      called = true;
+      cancellation.throwIfCancelled();
+      const result = (await next()) as Result;
+      cancellation.throwIfCancelled();
+      return result;
+    };
+  }
+
   #activeBindings(id: ServiceId): ServiceBinding[] {
     return (this.#bindings.get(id) ?? []).filter((binding) => binding.active);
   }
@@ -360,6 +691,18 @@ export class CordisForgeContext implements ForgeContext {
     const index = bindings.indexOf(binding);
     if (index >= 0) bindings.splice(index, 1);
     if (bindings.length === 0) this.#bindings.delete(binding.tokenId);
+  }
+
+  #removeEventBinding(binding: EventBinding): void {
+    const bindings = this.#shared.events.get(binding.eventId);
+    if (!bindings) return;
+    const index = bindings.indexOf(binding);
+    if (index >= 0) bindings.splice(index, 1);
+    if (bindings.length === 0) this.#shared.events.delete(binding.eventId);
+  }
+
+  get #events(): CordisEventBridge {
+    return this.#cordis.events as unknown as CordisEventBridge;
   }
 
   #removeChild(child: CordisForgeContext): void {

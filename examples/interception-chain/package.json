@@ -1,0 +1,10 @@
+{
+  "name": "@forge/example-interception-chain",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@forge/kernel-context": "workspace:*",
+    "@forge/kernel-contracts": "workspace:*"
+  }
+}

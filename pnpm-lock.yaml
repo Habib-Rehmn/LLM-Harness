@@ -42,6 +42,15 @@ importers:
         specifier: 'catalog:'
         version: 4.0.1
 
+  examples/interception-chain:
+    dependencies:
+      '@forge/kernel-context':
+        specifier: workspace:*
+        version: link:../../packages/kernel/context
+      '@forge/kernel-contracts':
+        specifier: workspace:*
+        version: link:../../packages/kernel/contracts
+
   packages/kernel/context:
     dependencies:
       '@deepseek-ai/cordis':

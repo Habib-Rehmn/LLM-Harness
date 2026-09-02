@@ -1,6 +1,6 @@
 # Forge
 
-Forge is a plugin-first, model-agnostic coding agent runtime. The current repository is at Day 2
+Forge is a plugin-first, model-agnostic coding agent runtime. The current repository is at Day 3
 of the implementation plan in [project.md](./project.md).
 
 ## Prerequisites
@@ -22,13 +22,14 @@ packages/kernel/contracts/   versioned public kernel contracts
 packages/kernel/context/     typed scoped service registry backed by Cordis
 examples/contract-plugin/    compile-time Forge plugin example
 examples/cordis-lifecycle/   executable Cordis lifecycle/scoping spike
+examples/interception-chain/ scoped event/waterfall lifecycle example
 schemas/                     versioned JSON Schemas
 docs/adr/                    architecture decisions
 ```
 
-The Forge context package now wraps Cordis with typed root/child scopes, exclusive and
-multi-provider services, deterministic shadowing, tracked effects, cascading disposal, and a
-value-redacted diagnostic graph. The original Cordis spike remains as a focused framework
+The Forge context package wraps Cordis with typed root/child scopes, exclusive and multi-provider
+services, typed events and waterfalls, monotonic decisions, tracked effects, cascading disposal,
+and value-redacted diagnostic graphs. The original Cordis spike remains as a focused framework
 compatibility test.
 
 ## Commands
@@ -44,5 +45,5 @@ compatibility test.
 
 ## Status
 
-Days 1 and 2 establish the contracts, framework foundation, and production Forge context facade.
-Typed events and waterfalls are the Day 3 deliverable; runtime manifest loading begins on Day 4.
+Days 1–3 establish the contracts, framework foundation, scoped service registry, and typed live
+event facade. Runtime manifest validation and plugin dependency loading begin on Day 4.

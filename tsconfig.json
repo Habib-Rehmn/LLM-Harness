@@ -4,6 +4,7 @@
     { "path": "./packages/kernel/contracts" },
     { "path": "./packages/kernel/context" },
     { "path": "./examples/contract-plugin" },
-    { "path": "./examples/cordis-lifecycle" }
+    { "path": "./examples/cordis-lifecycle" },
+    { "path": "./examples/interception-chain" }
   ]
 }

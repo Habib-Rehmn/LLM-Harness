@@ -1,5 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { FORGE_API_VERSION, ForgeError, cancellation, pluginName, serviceToken } from './index.js';
+import {
+  FORGE_API_VERSION,
+  ForgeError,
+  broadcastEvent,
+  cancellation,
+  decisionEvent,
+  pluginName,
+  serialEvent,
+  serviceToken,
+  waterfallEvent,
+} from './index.js';
 
 describe('kernel contracts', () => {
   it('creates stable service tokens', () => {
@@ -11,6 +21,16 @@ describe('kernel contracts', () => {
   it('supports namespaced service identifiers and typed cardinality', () => {
     const token = serviceToken<string>('forge.context-provider', 'multiple');
     expect(token).toEqual({ id: 'forge.context-provider', cardinality: 'multiple' });
+  });
+
+  it('creates typed event tokens', () => {
+    expect(broadcastEvent<string>('agent.notice')).toEqual({
+      id: 'agent.notice',
+      kind: 'broadcast',
+    });
+    expect(serialEvent<string, boolean>('tools.resolve').kind).toBe('serial');
+    expect(waterfallEvent<string, string>('tools.execute').kind).toBe('waterfall');
+    expect(decisionEvent<string>('policy.check').kind).toBe('decision');
   });
 
   it('rejects unstable plugin identifiers', () => {
