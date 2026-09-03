@@ -1,0 +1,12 @@
+{
+  "name": "@forge/cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "forge": "./lib/bin.js"
+  },
+  "dependencies": {
+    "@forge/kernel-config": "workspace:*"
+  }
+}

@@ -220,6 +220,7 @@ export interface ForgePlugin {
 export type ForgeErrorCode =
   | 'CANCELLED'
   | 'INVALID_MANIFEST'
+  | 'INVALID_CONFIG'
   | 'INCOMPATIBLE_API'
   | 'INCOMPATIBLE_SERVICE'
   | 'MISSING_SERVICE'

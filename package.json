@@ -15,6 +15,7 @@
     "clean": "tsc -b --clean",
     "format": "biome format --write .",
     "format:check": "biome format .",
+    "forge": "tsc -b --pretty false && node apps/cli/lib/bin.js",
     "lint": "biome lint .",
     "test": "vitest run",
     "test:watch": "vitest",

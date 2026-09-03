@@ -1,0 +1,6 @@
+[profile]
+name = "terminal"
+bundles = ["forge-base", "forge-local-execution", "forge-terminal"]
+
+# Day 5 composition template. Official plugin rows are added as their implementation days land.
+plugins = []

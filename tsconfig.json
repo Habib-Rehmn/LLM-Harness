@@ -1,7 +1,9 @@
 {
   "files": [],
   "references": [
+    { "path": "./apps/cli" },
     { "path": "./packages/kernel/contracts" },
+    { "path": "./packages/kernel/config" },
     { "path": "./packages/kernel/context" },
     { "path": "./packages/kernel/plugin-loader" },
     { "path": "./examples/contract-plugin" },

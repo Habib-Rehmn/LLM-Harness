@@ -1,0 +1,6 @@
+[profile]
+name = "headless"
+bundles = ["forge-base", "forge-local-execution", "forge-headless"]
+
+# Day 5 composition template. Official plugin rows are added as their implementation days land.
+plugins = []
