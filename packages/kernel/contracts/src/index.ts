@@ -13,6 +13,8 @@ export type ScopeId = string & { readonly __brand: 'ScopeId' };
 export type ThreadId = string & { readonly __brand: 'ThreadId' };
 export type TurnId = string & { readonly __brand: 'TurnId' };
 export type ItemId = string & { readonly __brand: 'ItemId' };
+export type StepId = string & { readonly __brand: 'StepId' };
+export type SessionEventId = string & { readonly __brand: 'SessionEventId' };
 
 export interface ForgeDisposable {
   dispose(): void | Promise<void>;
@@ -221,6 +223,7 @@ export type ForgeErrorCode =
   | 'CANCELLED'
   | 'INVALID_MANIFEST'
   | 'INVALID_CONFIG'
+  | 'INVALID_SESSION'
   | 'INCOMPATIBLE_API'
   | 'INCOMPATIBLE_SERVICE'
   | 'MISSING_SERVICE'
@@ -233,6 +236,9 @@ export type ForgeErrorCode =
   | 'PLUGIN_NOT_FOUND'
   | 'CONTEXT_DISPOSED'
   | 'CONTEXT_DISPOSE_FAILED'
+  | 'SESSION_NOT_FOUND'
+  | 'SESSION_CORRUPT'
+  | 'INVALID_TRANSITION'
   | 'INVARIANT_VIOLATION';
 
 export class ForgeError extends Error {
@@ -255,6 +261,7 @@ export class ForgeError extends Error {
 const PLUGIN_NAME_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const SERVICE_ID_PATTERN = /^[a-z0-9]+(?:[.-][a-z0-9]+)*$/;
 const EVENT_ID_PATTERN = SERVICE_ID_PATTERN;
+const SESSION_ID_SUFFIX_PATTERN = /^[a-zA-Z0-9_-]+$/;
 
 function brandedIdentifier<T extends string>(
   kind: string,
@@ -293,6 +300,34 @@ export function eventId(value: string): EventId {
     EVENT_ID_PATTERN,
     'lower-case dot/hyphen-separated segments',
   );
+}
+
+function sessionIdentifier<T extends string>(kind: string, prefix: string, value: string): T {
+  const suffix = value.slice(prefix.length + 1);
+  if (!value.startsWith(`${prefix}_`) || !SESSION_ID_SUFFIX_PATTERN.test(suffix)) {
+    throw new ForgeError('INVALID_SESSION', `${kind} has an invalid format`, { value });
+  }
+  return value as T;
+}
+
+export function threadId(value: string): ThreadId {
+  return sessionIdentifier<ThreadId>('thread id', 'thread', value);
+}
+
+export function turnId(value: string): TurnId {
+  return sessionIdentifier<TurnId>('turn id', 'turn', value);
+}
+
+export function itemId(value: string): ItemId {
+  return sessionIdentifier<ItemId>('item id', 'item', value);
+}
+
+export function stepId(value: string): StepId {
+  return sessionIdentifier<StepId>('step id', 'step', value);
+}
+
+export function sessionEventId(value: string): SessionEventId {
+  return sessionIdentifier<SessionEventId>('session event id', 'event', value);
 }
 
 export function serviceToken<T>(id: string): ServiceToken<T, 'exclusive'>;

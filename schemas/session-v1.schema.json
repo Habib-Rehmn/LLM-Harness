@@ -1,0 +1,219 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://forge.dev/schemas/session-v1.schema.json",
+  "title": "Forge session event v1",
+  "type": "object",
+  "required": ["schemaVersion", "eventId", "sequence", "timestamp", "threadId", "type", "data"],
+  "properties": {
+    "schemaVersion": { "const": "forge.session/v1" },
+    "eventId": { "$ref": "#/$defs/id" },
+    "sequence": { "type": "integer", "minimum": 1 },
+    "timestamp": { "type": "string", "minLength": 1 },
+    "threadId": { "$ref": "#/$defs/id" },
+    "turnId": { "$ref": "#/$defs/id" },
+    "stepId": { "$ref": "#/$defs/id" },
+    "itemId": { "$ref": "#/$defs/id" },
+    "type": {
+      "enum": [
+        "thread.created",
+        "thread.archived",
+        "turn.created",
+        "turn.state_changed",
+        "step.started",
+        "step.completed",
+        "step.failed",
+        "item.started",
+        "item.delta",
+        "item.completed",
+        "item.failed"
+      ]
+    },
+    "data": { "type": "object" }
+  },
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "type": { "enum": ["turn.created", "turn.state_changed"] }
+        }
+      },
+      "then": { "required": ["turnId"] }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": { "enum": ["step.started", "step.completed", "step.failed"] }
+        }
+      },
+      "then": { "required": ["turnId", "stepId"] }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": { "enum": ["item.started", "item.delta", "item.completed", "item.failed"] }
+        }
+      },
+      "then": { "required": ["turnId", "itemId"] }
+    },
+    {
+      "if": { "properties": { "type": { "const": "thread.created" } } },
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": ["workspaceRoot", "configSnapshot"],
+            "properties": {
+              "workspaceRoot": { "type": "string", "minLength": 1 },
+              "configSnapshot": { "type": "object" },
+              "forkedFrom": {
+                "type": "object",
+                "required": ["threadId"],
+                "properties": {
+                  "threadId": { "$ref": "#/$defs/id" },
+                  "throughTurnId": { "$ref": "#/$defs/id" }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "type": { "const": "turn.created" } } },
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": ["state"],
+            "properties": { "state": { "const": "queued" } },
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "type": { "const": "turn.state_changed" } } },
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": ["from", "to"],
+            "properties": {
+              "from": { "$ref": "#/$defs/turnState" },
+              "to": { "$ref": "#/$defs/turnState" }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "type": { "const": "step.started" } } },
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": ["index"],
+            "properties": {
+              "index": { "type": "integer", "minimum": 0 },
+              "label": { "type": "string" }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "type": { "const": "step.failed" } } },
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": ["message"],
+            "properties": { "message": { "type": "string" } },
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "type": { "const": "item.started" } } },
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": ["kind", "payload"],
+            "properties": {
+              "kind": { "$ref": "#/$defs/itemKind" },
+              "payload": {}
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "type": { "const": "item.delta" } } },
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": ["delta"],
+            "properties": { "delta": {} },
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "type": { "const": "item.failed" } } },
+      "then": {
+        "properties": {
+          "data": {
+            "type": "object",
+            "required": ["message"],
+            "properties": {
+              "message": { "type": "string" },
+              "code": { "type": "string" }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "id": { "type": "string", "pattern": "^(?:thread|turn|step|item|event)_[a-zA-Z0-9_-]+$" },
+    "turnState": {
+      "enum": [
+        "queued",
+        "running",
+        "waiting_for_approval",
+        "completed",
+        "failed",
+        "cancelled",
+        "limit_reached"
+      ]
+    },
+    "itemKind": {
+      "enum": [
+        "UserMessage",
+        "AssistantMessage",
+        "ReasoningSummary",
+        "PlanUpdate",
+        "ToolCall",
+        "ToolResult",
+        "CommandExecution",
+        "FileChange",
+        "ApprovalRequest",
+        "ContextCompaction",
+        "CheckpointRestore",
+        "Warning",
+        "Error"
+      ]
+    }
+  }
+}

@@ -115,6 +115,15 @@ importers:
         specifier: 'catalog:'
         version: 7.8.0
 
+  packages/session/core:
+    dependencies:
+      '@forge/kernel-contracts':
+        specifier: workspace:*
+        version: link:../../kernel/contracts
+      ajv:
+        specifier: 'catalog:'
+        version: 8.20.0
+
 packages:
 
   '@biomejs/biome@2.5.10':

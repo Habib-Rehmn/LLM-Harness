@@ -6,8 +6,12 @@ import {
   cancellation,
   decisionEvent,
   pluginName,
+  sessionEventId,
   serialEvent,
   serviceToken,
+  stepId,
+  threadId,
+  turnId,
   waterfallEvent,
 } from './index.js';
 
@@ -40,6 +44,16 @@ describe('kernel contracts', () => {
 
   it('provides a versioned API constant', () => {
     expect(FORGE_API_VERSION).toBe('forge.dev/v1');
+  });
+
+  it('validates durable session identifiers', () => {
+    expect(threadId('thread_01')).toBe('thread_01');
+    expect(turnId('turn_01')).toBe('turn_01');
+    expect(stepId('step_01')).toBe('step_01');
+    expect(sessionEventId('event_01')).toBe('event_01');
+    expect(() => threadId('../escape')).toThrowError(
+      expect.objectContaining({ code: 'INVALID_SESSION' }),
+    );
   });
 
   it('propagates cancellation with a typed error', () => {

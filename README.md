@@ -1,6 +1,6 @@
 # Forge
 
-Forge is a plugin-first, model-agnostic coding agent runtime. The current repository is at Day 5
+Forge is a plugin-first, model-agnostic coding agent runtime. The current repository is at Day 6
 of the implementation plan in [project.md](./project.md).
 
 ## Prerequisites
@@ -22,6 +22,7 @@ packages/kernel/contracts/   versioned public kernel contracts
 packages/kernel/context/     typed scoped service registry backed by Cordis
 packages/kernel/config/      bundles, profiles, layered patches, provenance, and diagnostics
 packages/kernel/plugin-loader/ manifest validation, dependency graph, and lifecycle host
+packages/session/core/        durable session protocol, replay, projection, and stores
 apps/cli/                    Forge command-line entrypoint
 examples/contract-plugin/    compile-time Forge plugin example
 examples/cordis-lifecycle/   executable Cordis lifecycle/scoping spike
@@ -50,6 +51,7 @@ compatibility test.
 
 ## Status
 
-Days 1–5 establish the contracts, framework foundation, scoped services/events, deterministic
-plugin loading, and layered profile configuration with redacted diagnostics. Durable session
-protocol and persistence are the Day 6 deliverable.
+Days 1–6 establish the contracts, framework foundation, scoped services/events, deterministic
+plugin loading, layered profile configuration, and the durable session protocol. Session history
+can now be held in memory or persisted as append-only JSONL, replayed into the same model-visible
+input, resumed, forked, archived, and recovered after an interrupted final write.
