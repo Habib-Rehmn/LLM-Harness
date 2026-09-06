@@ -47,6 +47,12 @@ importers:
       '@forge/kernel-config':
         specifier: workspace:*
         version: link:../../packages/kernel/config
+      '@forge/llm-core':
+        specifier: workspace:*
+        version: link:../../packages/llm/core
+      '@forge/provider-ollama':
+        specifier: workspace:*
+        version: link:../../packages/providers/ollama
 
   examples/contract-plugin:
     dependencies:
@@ -114,6 +120,39 @@ importers:
       '@types/semver':
         specifier: 'catalog:'
         version: 7.8.0
+
+  packages/llm/core:
+    dependencies:
+      '@forge/kernel-contracts':
+        specifier: workspace:*
+        version: link:../../kernel/contracts
+
+  packages/providers/custom-http:
+    dependencies:
+      '@forge/kernel-contracts':
+        specifier: workspace:*
+        version: link:../../kernel/contracts
+      '@forge/llm-core':
+        specifier: workspace:*
+        version: link:../../llm/core
+
+  packages/providers/ollama:
+    dependencies:
+      '@forge/kernel-contracts':
+        specifier: workspace:*
+        version: link:../../kernel/contracts
+      '@forge/llm-core':
+        specifier: workspace:*
+        version: link:../../llm/core
+
+  packages/providers/openai-compatible:
+    dependencies:
+      '@forge/kernel-contracts':
+        specifier: workspace:*
+        version: link:../../kernel/contracts
+      '@forge/llm-core':
+        specifier: workspace:*
+        version: link:../../llm/core
 
   packages/session/core:
     dependencies:

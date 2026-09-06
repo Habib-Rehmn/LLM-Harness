@@ -12,6 +12,13 @@ import {
   diagnoseConfiguration,
   parseConfigurationOverlayToml,
 } from '@forge/kernel-config';
+import {
+  ProviderRegistry,
+  collectModelResponse,
+  selectToolProtocol,
+  type ModelDescriptor,
+} from '@forge/llm-core';
+import { OllamaProvider } from '@forge/provider-ollama';
 
 export interface CliIo {
   readonly stdout: (text: string) => void;
@@ -22,6 +29,7 @@ export interface CliRuntime {
   readonly cwd?: string;
   readonly home?: string;
   readonly loadDefaultFiles?: boolean;
+  readonly providerRegistry?: ProviderRegistry;
 }
 
 const DEFAULT_IO: CliIo = {
@@ -110,8 +118,16 @@ export async function runCli(
         'local-config': { type: 'string' },
         'managed-config': { type: 'string' },
         set: { type: 'string', multiple: true, default: [] },
+        'ollama-url': { type: 'string', default: 'http://127.0.0.1:11434' },
       },
     });
+    if (parsed.positionals[0] === 'models') {
+      const registry = runtime.providerRegistry ?? new ProviderRegistry();
+      if (!runtime.providerRegistry) {
+        registry.register(new OllamaProvider({ baseUrl: parsed.values['ollama-url'] }));
+      }
+      return await runModelsCommand(parsed.positionals, registry, io);
+    }
     const cwd = resolve(runtime.cwd ?? process.cwd());
     const home = runtime.home ?? homedir();
     const loadDefaults = runtime.loadDefaultFiles ?? true;
@@ -173,4 +189,92 @@ export async function runCli(
     io.stderr(error instanceof Error ? error.message : String(error));
     return 1;
   }
+}
+
+async function runModelsCommand(
+  positionals: readonly string[],
+  registry: ProviderRegistry,
+  io: CliIo,
+): Promise<number> {
+  const command = positionals[1];
+  if (command === 'list') {
+    if (positionals.length !== 2) throw new Error('Usage: forge models list');
+    const models = await registry.discoverModels();
+    io.stdout(
+      JSON.stringify(
+        models.map((model) => ({
+          reference: `${model.providerId}/${model.id}`,
+          displayName: model.displayName,
+          capabilities: model.capabilities,
+          toolProtocol: selectToolProtocol(model.capabilities, { allowPromptedFallback: true }),
+        })),
+        null,
+        2,
+      ),
+    );
+    return 0;
+  }
+  if (command === 'test') {
+    if (positionals.length !== 3) {
+      throw new Error('Usage: forge models test <provider/model>');
+    }
+    const reference = positionals[2];
+    if (!reference) throw new Error('A provider/model reference is required');
+    const model = await registry.resolveModel(reference);
+    const provider = registry.get(model.providerId);
+    const result = await collectModelResponse(
+      provider.generate({
+        model: model.id,
+        system: 'This is a read-only Forge provider conformance check.',
+        messages: [
+          {
+            role: 'user',
+            content:
+              'Reply briefly, or call forge_read_probe with path README.md if tool calls are supported.',
+          },
+        ],
+        ...(model.capabilities.nativeToolCalls
+          ? {
+              tools: [
+                {
+                  name: 'forge_read_probe',
+                  description: 'Request a read-only file probe; this command does not execute it.',
+                  inputSchema: {
+                    type: 'object',
+                    required: ['path'],
+                    properties: { path: { type: 'string' } },
+                    additionalProperties: false,
+                  },
+                },
+              ],
+              toolChoice: 'auto' as const,
+            }
+          : {}),
+        maxOutputTokens: Math.min(128, model.capabilities.maxOutputTokens),
+        temperature: 0,
+      }),
+    );
+    io.stdout(
+      JSON.stringify(
+        {
+          ok: true,
+          model: summarizeModel(model),
+          toolProtocol: selectToolProtocol(model.capabilities, { allowPromptedFallback: true }),
+          response: result,
+        },
+        null,
+        2,
+      ),
+    );
+    return 0;
+  }
+  throw new Error('Usage: forge models list | forge models test <provider/model>');
+}
+
+function summarizeModel(model: ModelDescriptor) {
+  return {
+    reference: `${model.providerId}/${model.id}`,
+    displayName: model.displayName,
+    capabilities: model.capabilities,
+  };
 }

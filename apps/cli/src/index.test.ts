@@ -1,4 +1,10 @@
 import { describe, expect, it } from 'vitest';
+import {
+  DEFAULT_CAPABILITIES,
+  FakeLlmProvider,
+  ProviderRegistry,
+  providerId,
+} from '@forge/llm-core';
 import { runCli } from './index.js';
 
 function captureIo(): {
@@ -68,6 +74,69 @@ describe('Forge configuration CLI', () => {
     expect(JSON.parse(invalid.stdout[0] ?? '')).toMatchObject({
       ok: false,
       diagnostics: [{ code: 'INVALID_CONFIG' }],
+    });
+  });
+});
+
+describe('Forge models CLI', () => {
+  function registry(): ProviderRegistry {
+    const registry = new ProviderRegistry();
+    registry.register(
+      new FakeLlmProvider(
+        'fake',
+        [
+          {
+            id: 'coder',
+            providerId: providerId('fake'),
+            displayName: 'Fake Coder',
+            capabilities: { ...DEFAULT_CAPABILITIES, nativeToolCalls: true },
+          },
+        ],
+        [
+          {
+            events: [
+              { type: 'text_delta', text: 'Provider ready.' },
+              { type: 'usage', usage: { inputTokens: 8, outputTokens: 2 } },
+              { type: 'completed', finishReason: 'stop' },
+            ],
+          },
+        ],
+      ),
+    );
+    return registry;
+  }
+
+  it('lists models with capabilities and negotiated tool protocol', async () => {
+    const output = captureIo();
+    expect(
+      await runCli(['models', 'list'], output.io, {
+        loadDefaultFiles: false,
+        providerRegistry: registry(),
+      }),
+    ).toBe(0);
+    expect(JSON.parse(output.stdout[0] ?? '')).toEqual([
+      expect.objectContaining({
+        reference: 'fake/coder',
+        toolProtocol: { level: 'native', degraded: false },
+      }),
+    ]);
+  });
+
+  it('runs a model conformance probe', async () => {
+    const output = captureIo();
+    expect(
+      await runCli(['models', 'test', 'fake/coder'], output.io, {
+        loadDefaultFiles: false,
+        providerRegistry: registry(),
+      }),
+    ).toBe(0);
+    expect(JSON.parse(output.stdout[0] ?? '')).toMatchObject({
+      ok: true,
+      model: { reference: 'fake/coder' },
+      response: {
+        text: 'Provider ready.',
+        usage: { inputTokens: 8, outputTokens: 2 },
+      },
     });
   });
 });

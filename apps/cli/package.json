@@ -7,6 +7,8 @@
     "forge": "./lib/bin.js"
   },
   "dependencies": {
-    "@forge/kernel-config": "workspace:*"
+    "@forge/kernel-config": "workspace:*",
+    "@forge/llm-core": "workspace:*",
+    "@forge/provider-ollama": "workspace:*"
   }
 }

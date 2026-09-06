@@ -1,6 +1,6 @@
 # Forge
 
-Forge is a plugin-first, model-agnostic coding agent runtime. The current repository is at Day 6
+Forge is a plugin-first, model-agnostic coding agent runtime. The current repository is at Day 8
 of the implementation plan in [project.md](./project.md).
 
 ## Prerequisites
@@ -22,6 +22,10 @@ packages/kernel/contracts/   versioned public kernel contracts
 packages/kernel/context/     typed scoped service registry backed by Cordis
 packages/kernel/config/      bundles, profiles, layered patches, provenance, and diagnostics
 packages/kernel/plugin-loader/ manifest validation, dependency graph, and lifecycle host
+packages/llm/core/            canonical model protocol, registry, capabilities, and fake provider
+packages/providers/openai-compatible/ OpenAI-compatible streaming provider plugin
+packages/providers/ollama/    Ollama discovery and streaming provider plugin
+packages/providers/custom-http/ configurable JSON, NDJSON, and SSE provider plugin
 packages/session/core/        durable session protocol, replay, projection, and stores
 apps/cli/                    Forge command-line entrypoint
 examples/contract-plugin/    compile-time Forge plugin example
@@ -48,10 +52,12 @@ compatibility test.
 | `corepack pnpm check` | Run the complete local/CI gate |
 | `corepack pnpm forge --profile terminal --dump-config` | Print redacted effective configuration |
 | `corepack pnpm forge config doctor` | Validate configuration and print diagnostics |
+| `corepack pnpm forge models list` | Discover models and print capability profiles |
+| `corepack pnpm forge models test ollama/<model>` | Run a bounded provider conformance probe |
 
 ## Status
 
-Days 1–6 establish the contracts, framework foundation, scoped services/events, deterministic
-plugin loading, layered profile configuration, and the durable session protocol. Session history
-can now be held in memory or persisted as append-only JSONL, replayed into the same model-visible
-input, resumed, forked, archived, and recovered after an interrupted final write.
+Days 1–8 establish the microkernel, configuration, durable sessions, canonical LLM service, and
+initial provider plugins. OpenAI-compatible, Ollama, custom HTTP, and deterministic fake providers
+share one streamed event contract with explicit capability degradation, cancellation, timeout,
+usage, Unicode, and tool-call handling. The CLI can discover and test configured models.
