@@ -433,6 +433,7 @@ export function throwIfAborted(signal?: AbortSignal): void {
 export interface FakeProviderResponse {
   readonly events: readonly ModelEvent[];
   readonly delayMs?: number;
+  readonly error?: ProviderError;
 }
 
 export class FakeLlmProvider implements LlmProvider {
@@ -473,6 +474,7 @@ export class FakeLlmProvider implements LlmProvider {
     this.requests.push(structuredClone(request));
     const response = this.#responses.shift();
     if (!response) throw new ProviderError('PROVIDER_UNAVAILABLE', 'Fake provider has no response');
+    if (response.error) throw response.error;
     for (const event of response.events) {
       if (response.delayMs) {
         await new Promise<void>((resolve, reject) => {

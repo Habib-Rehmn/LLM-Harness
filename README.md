@@ -1,7 +1,7 @@
 # Forge
 
-Forge is a plugin-first, model-agnostic coding agent runtime. The current repository is at Day 8
-of the implementation plan in [project.md](./project.md).
+Forge is a plugin-first, model-agnostic coding agent runtime. The current repository is at Day 13
+of the private implementation plan.
 
 ## Prerequisites
 
@@ -23,10 +23,15 @@ packages/kernel/context/     typed scoped service registry backed by Cordis
 packages/kernel/config/      bundles, profiles, layered patches, provenance, and diagnostics
 packages/kernel/plugin-loader/ manifest validation, dependency graph, and lifecycle host
 packages/llm/core/            canonical model protocol, registry, capabilities, and fake provider
+packages/agent/core/          bounded agent loop, modes, inbox steering, retry, and cancellation
+packages/editor/core/         conflict-checked transactional edits, diffs, and turn checkpoints
+packages/tools/core/          schema-driven tool registry and guarded execution pipeline
+packages/process/core/        bounded subprocess, PTY, background handle, shell, and Git tools
 packages/providers/openai-compatible/ OpenAI-compatible streaming provider plugin
 packages/providers/ollama/    Ollama discovery and streaming provider plugin
 packages/providers/custom-http/ configurable JSON, NDJSON, and SSE provider plugin
 packages/session/core/        durable session protocol, replay, projection, and stores
+packages/repository/context/  safe repository inventory, search, reads, maps, and context assembly
 apps/cli/                    Forge command-line entrypoint
 examples/contract-plugin/    compile-time Forge plugin example
 examples/cordis-lifecycle/   executable Cordis lifecycle/scoping spike
@@ -57,7 +62,16 @@ compatibility test.
 
 ## Status
 
-Days 1–8 establish the microkernel, configuration, durable sessions, canonical LLM service, and
-initial provider plugins. OpenAI-compatible, Ollama, custom HTTP, and deterministic fake providers
-share one streamed event contract with explicit capability degradation, cancellation, timeout,
-usage, Unicode, and tool-call handling. The CLI can discover and test configured models.
+Days 1–13 establish the microkernel, configuration, durable sessions, canonical LLM service,
+provider plugins, bounded coding-agent loop, guarded tool runtime, repository context layer,
+transactional editor, and process runtime.
+The agent supports ask/plan/code/review modes, queued follow-ups, live steering, cancellation,
+retries, and hard iteration/time/token/tool limits. Tools are discoverable, JSON-Schema validated,
+policy guarded, normalized, and safely scheduled. Repository context excludes ignored, secret,
+binary, oversized, and symlinked files while providing deterministic inventory, glob, search,
+bounded reads, symbol maps, caching, and token-budgeted prompt sections.
+
+Edits are UTF-8, canonical-path checked, symlink defended, hash-conflict checked, atomically
+written, checkpointed by turn, and rollback-safe against later direct edits. Process tools separate
+argv from explicit shell execution, filter environments, redact and bound output, support PTY and
+background input handles, and terminate descendant process groups on timeout or cancellation.

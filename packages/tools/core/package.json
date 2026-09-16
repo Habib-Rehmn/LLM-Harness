@@ -1,0 +1,19 @@
+{
+  "name": "@forge/tools-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./lib/index.d.ts",
+      "default": "./lib/index.js"
+    }
+  },
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "dependencies": {
+    "@forge/kernel-contracts": "workspace:*",
+    "@forge/llm-core": "workspace:*",
+    "ajv": "catalog:"
+  }
+}

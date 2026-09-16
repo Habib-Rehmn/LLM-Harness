@@ -75,6 +75,30 @@ importers:
         specifier: workspace:*
         version: link:../../packages/kernel/contracts
 
+  packages/agent/core:
+    dependencies:
+      '@forge/kernel-contracts':
+        specifier: workspace:*
+        version: link:../../kernel/contracts
+      '@forge/llm-core':
+        specifier: workspace:*
+        version: link:../../llm/core
+      '@forge/session-core':
+        specifier: workspace:*
+        version: link:../../session/core
+      '@forge/tools-core':
+        specifier: workspace:*
+        version: link:../../tools/core
+
+  packages/editor/core:
+    dependencies:
+      '@forge/kernel-contracts':
+        specifier: workspace:*
+        version: link:../../kernel/contracts
+      '@forge/tools-core':
+        specifier: workspace:*
+        version: link:../../tools/core
+
   packages/kernel/config:
     dependencies:
       '@forge/kernel-contracts':
@@ -127,6 +151,15 @@ importers:
         specifier: workspace:*
         version: link:../../kernel/contracts
 
+  packages/process/core:
+    dependencies:
+      '@forge/kernel-contracts':
+        specifier: workspace:*
+        version: link:../../kernel/contracts
+      '@forge/tools-core':
+        specifier: workspace:*
+        version: link:../../tools/core
+
   packages/providers/custom-http:
     dependencies:
       '@forge/kernel-contracts':
@@ -154,11 +187,32 @@ importers:
         specifier: workspace:*
         version: link:../../llm/core
 
+  packages/repository/context:
+    dependencies:
+      '@forge/kernel-contracts':
+        specifier: workspace:*
+        version: link:../../kernel/contracts
+      '@forge/tools-core':
+        specifier: workspace:*
+        version: link:../../tools/core
+
   packages/session/core:
     dependencies:
       '@forge/kernel-contracts':
         specifier: workspace:*
         version: link:../../kernel/contracts
+      ajv:
+        specifier: 'catalog:'
+        version: 8.20.0
+
+  packages/tools/core:
+    dependencies:
+      '@forge/kernel-contracts':
+        specifier: workspace:*
+        version: link:../../kernel/contracts
+      '@forge/llm-core':
+        specifier: workspace:*
+        version: link:../../llm/core
       ajv:
         specifier: 'catalog:'
         version: 8.20.0
