@@ -44,6 +44,9 @@ importers:
 
   apps/cli:
     dependencies:
+      '@forge/interfaces-core':
+        specifier: workspace:*
+        version: link:../../packages/interfaces/core
       '@forge/kernel-config':
         specifier: workspace:*
         version: link:../../packages/kernel/config
@@ -99,6 +102,12 @@ importers:
         specifier: workspace:*
         version: link:../../tools/core
 
+  packages/interfaces/core:
+    dependencies:
+      '@forge/kernel-contracts':
+        specifier: workspace:*
+        version: link:../../kernel/contracts
+
   packages/kernel/config:
     dependencies:
       '@forge/kernel-contracts':
@@ -151,6 +160,18 @@ importers:
         specifier: workspace:*
         version: link:../../kernel/contracts
 
+  packages/policy/core:
+    dependencies:
+      '@forge/kernel-context':
+        specifier: workspace:*
+        version: link:../../kernel/context
+      '@forge/kernel-contracts':
+        specifier: workspace:*
+        version: link:../../kernel/contracts
+      '@forge/tools-core':
+        specifier: workspace:*
+        version: link:../../tools/core
+
   packages/process/core:
     dependencies:
       '@forge/kernel-contracts':
@@ -195,6 +216,15 @@ importers:
       '@forge/tools-core':
         specifier: workspace:*
         version: link:../../tools/core
+
+  packages/sandbox/linux:
+    dependencies:
+      '@forge/kernel-contracts':
+        specifier: workspace:*
+        version: link:../../kernel/contracts
+      '@forge/process-core':
+        specifier: workspace:*
+        version: link:../../process/core
 
   packages/session/core:
     dependencies:

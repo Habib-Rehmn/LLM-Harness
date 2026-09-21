@@ -52,6 +52,20 @@ export interface ProcessManagerOptions {
   readonly defaultMaxOutputBytes?: number;
   readonly defaultMaxOutputLines?: number;
   readonly killGraceMs?: number;
+  readonly sandbox?: ProcessSandbox;
+  readonly requireSandbox?: boolean;
+}
+
+export interface ProcessLaunchPlan {
+  readonly file: string;
+  readonly arguments: readonly string[];
+  readonly cwd: string;
+  readonly env: Readonly<NodeJS.ProcessEnv>;
+}
+
+export interface ProcessSandbox {
+  readonly id: string;
+  prepare(plan: ProcessLaunchPlan, spec: ProcessSpec): Promise<ProcessLaunchPlan>;
 }
 
 const SAFE_INHERITED_ENV = ['PATH', 'LANG', 'LC_ALL', 'LC_CTYPE', 'TERM', 'COLORTERM'];
@@ -179,7 +193,9 @@ export class ManagedProcess {
 
 export class ProcessManager {
   readonly #root: string;
-  readonly #options: Required<ProcessManagerOptions>;
+  readonly #options: Omit<Required<ProcessManagerOptions>, 'sandbox'> & {
+    readonly sandbox?: ProcessSandbox;
+  };
   readonly #processes = new Map<string, ManagedProcess>();
 
   private constructor(root: string, options: ProcessManagerOptions) {
@@ -192,6 +208,8 @@ export class ProcessManager {
       defaultMaxOutputBytes: options.defaultMaxOutputBytes ?? 128_000,
       defaultMaxOutputLines: options.defaultMaxOutputLines ?? 2_000,
       killGraceMs: options.killGraceMs ?? 250,
+      ...(options.sandbox ? { sandbox: options.sandbox } : {}),
+      requireSandbox: options.requireSandbox ?? false,
     };
   }
 
@@ -208,9 +226,21 @@ export class ProcessManager {
     const cwd = await this.#workingDirectory(spec.cwd);
     const environment = this.#environment(spec.env);
     const command = commandFor(spec);
-    const child = spawn(command.file, command.arguments, {
+    if (this.#options.requireSandbox && !this.#options.sandbox) {
+      throw new Error('A process sandbox is required but none is configured');
+    }
+    const initial: ProcessLaunchPlan = {
+      file: command.file,
+      arguments: command.arguments,
       cwd,
       env: environment,
+    };
+    const launch = this.#options.sandbox
+      ? await this.#options.sandbox.prepare(initial, spec)
+      : initial;
+    const child = spawn(launch.file, [...launch.arguments], {
+      cwd: launch.cwd,
+      env: launch.env,
       detached: process.platform !== 'win32',
       stdio: 'pipe',
       windowsHide: true,

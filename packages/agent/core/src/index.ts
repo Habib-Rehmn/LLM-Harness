@@ -387,6 +387,8 @@ export class DefaultAgent implements Agent {
       usage.toolCalls += normalized.toolCalls.length;
       const results = await this.#pipeline.executeBatch(normalized.toolCalls, {
         workspaceRoot: this.#options.workspaceRoot,
+        workspaceId: this.#options.workspaceRoot,
+        sessionId: this.#options.threadId,
         mode: mode.mode,
         signal: active.controller.signal,
         restriction: mode.toolRestriction,

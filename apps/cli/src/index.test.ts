@@ -5,6 +5,7 @@ import {
   ProviderRegistry,
   providerId,
 } from '@forge/llm-core';
+import type { InterfaceCommand, InterfaceEvent, InterfaceSession } from '@forge/interfaces-core';
 import { runCli } from './index.js';
 
 function captureIo(): {
@@ -138,5 +139,43 @@ describe('Forge models CLI', () => {
         usage: { inputTokens: 8, outputTokens: 2 },
       },
     });
+  });
+});
+
+describe('Forge headless CLI', () => {
+  class Session implements InterfaceSession {
+    async *submit(prompt: string): AsyncIterable<InterfaceEvent> {
+      yield { type: 'status', text: `received:${prompt}` };
+      yield { type: 'message', role: 'assistant', text: 'Headless done.' };
+    }
+
+    async command(_name: InterfaceCommand, _arguments: readonly string[]) {
+      return { text: 'ok' };
+    }
+
+    cancel(): void {}
+  }
+
+  it('runs forge exec in JSON mode through the shared interface session', async () => {
+    const output = captureIo();
+    expect(
+      await runCli(['exec', 'fix', 'the', 'tests', '--format', 'json'], output.io, {
+        loadDefaultFiles: false,
+        interfaceSession: new Session(),
+      }),
+    ).toBe(0);
+    expect(JSON.parse(output.stdout[0] ?? '')).toMatchObject({
+      ok: true,
+      events: [
+        { type: 'status', text: 'received:fix the tests' },
+        { type: 'message', role: 'assistant', text: 'Headless done.' },
+      ],
+    });
+  });
+
+  it('returns the stable unavailable code instead of prompting without a runtime', async () => {
+    const output = captureIo();
+    expect(await runCli(['exec', 'work'], output.io, { loadDefaultFiles: false })).toBe(4);
+    expect(output.stderr).toEqual(['The agent runtime is not configured for headless execution']);
   });
 });

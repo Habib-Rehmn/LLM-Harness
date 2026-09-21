@@ -19,6 +19,13 @@ import {
   type ModelDescriptor,
 } from '@forge/llm-core';
 import { OllamaProvider } from '@forge/provider-ollama';
+import {
+  FORGE_EXIT_CODES,
+  HeadlessExecutor,
+  type HeadlessFormat,
+  type InterfaceSession,
+  type NonInteractiveApproval,
+} from '@forge/interfaces-core';
 
 export interface CliIo {
   readonly stdout: (text: string) => void;
@@ -30,6 +37,7 @@ export interface CliRuntime {
   readonly home?: string;
   readonly loadDefaultFiles?: boolean;
   readonly providerRegistry?: ProviderRegistry;
+  readonly interfaceSession?: InterfaceSession;
 }
 
 const DEFAULT_IO: CliIo = {
@@ -119,8 +127,25 @@ export async function runCli(
         'managed-config': { type: 'string' },
         set: { type: 'string', multiple: true, default: [] },
         'ollama-url': { type: 'string', default: 'http://127.0.0.1:11434' },
+        format: { type: 'string', default: 'text' },
+        approval: { type: 'string', default: 'error' },
       },
     });
+    if (parsed.positionals[0] === 'exec') {
+      if (!runtime.interfaceSession) {
+        io.stderr('The agent runtime is not configured for headless execution');
+        return FORGE_EXIT_CODES.unavailable;
+      }
+      const prompt = parsed.positionals.slice(1).join(' ').trim();
+      const format = parsed.values.format;
+      if (!isHeadlessFormat(format)) throw new Error(`Invalid --format value: ${format}`);
+      const approval = parsed.values.approval;
+      if (!isApprovalMode(approval)) throw new Error(`Invalid --approval value: ${approval}`);
+      return new HeadlessExecutor(runtime.interfaceSession).execute(prompt, io, {
+        format,
+        approval,
+      });
+    }
     if (parsed.positionals[0] === 'models') {
       const registry = runtime.providerRegistry ?? new ProviderRegistry();
       if (!runtime.providerRegistry) {
@@ -277,4 +302,12 @@ function summarizeModel(model: ModelDescriptor) {
     displayName: model.displayName,
     capabilities: model.capabilities,
   };
+}
+
+function isHeadlessFormat(value: string): value is HeadlessFormat {
+  return value === 'text' || value === 'json' || value === 'jsonl';
+}
+
+function isApprovalMode(value: string): value is NonInteractiveApproval {
+  return value === 'deny' || value === 'error';
 }

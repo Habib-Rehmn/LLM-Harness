@@ -61,15 +61,28 @@ export interface ToolCall {
   readonly arguments: JsonObject;
 }
 
+export interface ToolPolicyMatch {
+  readonly ruleId: string;
+  readonly description: string;
+  readonly evidence?: Readonly<Record<string, string | boolean | readonly string[]>>;
+}
+
 export type ToolPolicyDecision =
-  | { readonly decision: 'allow' }
-  | { readonly decision: 'ask'; readonly reason: string }
-  | { readonly decision: 'deny'; readonly reason: string };
+  | { readonly decision: 'allow'; readonly match?: ToolPolicyMatch }
+  | {
+      readonly decision: 'ask';
+      readonly reason: string;
+      readonly match?: ToolPolicyMatch;
+      readonly approvalId?: string;
+    }
+  | { readonly decision: 'deny'; readonly reason: string; readonly match?: ToolPolicyMatch };
 
 export interface GuardedToolCall extends ToolCall {
   readonly definition: ToolDefinition;
   readonly workspaceRoot: string;
   readonly mode: string;
+  readonly sessionId?: string;
+  readonly workspaceId?: string;
 }
 
 export interface ToolGuard {
@@ -244,6 +257,8 @@ export interface ToolPipelineHooks {
 export interface ExecuteToolOptions {
   readonly workspaceRoot: string;
   readonly mode: string;
+  readonly sessionId?: string;
+  readonly workspaceId?: string;
   readonly signal?: AbortSignal;
   readonly restriction?: ToolRestriction;
 }
@@ -299,6 +314,8 @@ export class ToolPipeline {
             definition: registered.tool.definition,
             workspaceRoot: options.workspaceRoot,
             mode: options.mode,
+            ...(options.sessionId ? { sessionId: options.sessionId } : {}),
+            ...(options.workspaceId ? { workspaceId: options.workspaceId } : {}),
           };
           for (const hook of this.#hooks.preExecute ?? []) {
             const prepared = await hook(guarded);

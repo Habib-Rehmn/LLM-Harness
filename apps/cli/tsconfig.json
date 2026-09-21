@@ -7,6 +7,7 @@
   },
   "include": ["src/**/*.ts"],
   "references": [
+    { "path": "../../packages/interfaces/core" },
     { "path": "../../packages/kernel/config" },
     { "path": "../../packages/llm/core" },
     { "path": "../../packages/providers/ollama" }
