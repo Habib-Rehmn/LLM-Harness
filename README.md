@@ -1,6 +1,6 @@
 # Forge
 
-Forge is a plugin-first, model-agnostic coding agent runtime. The current repository is at Day 16
+Forge is a plugin-first, model-agnostic coding agent runtime. The current repository is at Day 18
 of the private implementation plan.
 
 ## Prerequisites
@@ -30,6 +30,8 @@ packages/process/core/        bounded subprocess, PTY, background handle, shell,
 packages/policy/core/         immutable deny-first policies and scoped approval grants
 packages/sandbox/linux/       fail-closed Bubblewrap isolation and external sandbox declarations
 packages/interfaces/core/     shared streaming terminal and headless execution interfaces
+packages/memory/core/         context lanes, artifacts, compaction, memory, and trace replay
+packages/extensions/core/     MCP stdio, lifecycle hooks, and on-demand skill plugins
 packages/providers/openai-compatible/ OpenAI-compatible streaming provider plugin
 packages/providers/ollama/    Ollama discovery and streaming provider plugin
 packages/providers/custom-http/ configurable JSON, NDJSON, and SSE provider plugin
@@ -65,7 +67,7 @@ compatibility test.
 
 ## Status
 
-Days 1–16 establish the microkernel, configuration, durable sessions, canonical LLM service,
+Days 1–18 establish the microkernel, configuration, durable sessions, canonical LLM service,
 provider plugins, bounded coding-agent loop, guarded tool runtime, repository context layer,
 transactional editor, and process runtime.
 The agent supports ask/plan/code/review modes, queued follow-ups, live steering, cancellation,
@@ -88,3 +90,10 @@ Linux commands can run through a required Bubblewrap backend with workspace-only
 writes, protected metadata, network default-deny, resource ceilings, and inherited subprocess
 isolation. Terminal and headless clients consume one streaming session protocol; `forge exec`
 supports text, JSON, and JSONL output with stable non-interactive exit behavior.
+
+Long sessions use priority-ordered context lanes, content-addressed artifacts, bounded output,
+rate-limited structured compaction, auditable project memory, and side-effect-free trace replay.
+MCP stdio tools are namespaced and enter the normal guarded tool pipeline, including schema
+validation, policy, timeout, output limiting, and origin reporting. Lifecycle hooks have typed
+decisions and fail-closed timeouts; skill metadata is searchable while full instructions are loaded
+only on demand. Hook and skill contribution plugins unregister cleanly with their plugin scope.

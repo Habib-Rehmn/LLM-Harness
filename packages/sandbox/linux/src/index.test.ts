@@ -1,12 +1,12 @@
-import { access, mkdtemp, mkdir } from 'node:fs/promises';
+import { access, mkdir, mkdtemp } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { type ProcessLaunchPlan, ProcessManager } from '@forge/process-core';
 import { describe, expect, it } from 'vitest';
-import { ProcessManager, type ProcessLaunchPlan } from '@forge/process-core';
 import {
-  LinuxBubblewrapSandbox,
   declareExternalSandbox,
+  LinuxBubblewrapSandbox,
   type SandboxAvailability,
 } from './index.js';
 
@@ -31,12 +31,14 @@ describe('Linux bubblewrap sandbox', () => {
     const root = await fixture();
     const sandbox = new LinuxBubblewrapSandbox({
       workspaceRoot: root,
+      bubblewrapPath: '/bin/true',
+      prlimitPath: '/bin/true',
       probe: async () => true,
       limits: { cpuSeconds: 12, processes: 16 },
     });
     expect(await sandbox.availability()).toEqual({ available: true, backend: 'bubblewrap' });
     const prepared = await sandbox.prepare(plan(root), { argv: ['/bin/sh', '-c', 'printf ok'] });
-    expect(prepared.file).toBe('/usr/bin/bwrap');
+    expect(prepared.file).toBe('/bin/true');
     expect(prepared.arguments).toEqual(
       expect.arrayContaining([
         '--die-with-parent',
@@ -76,7 +78,12 @@ describe('Linux bubblewrap sandbox', () => {
 
   it('rejects a working directory outside the workspace before launch', async () => {
     const root = await fixture();
-    const sandbox = new LinuxBubblewrapSandbox({ workspaceRoot: root, probe: async () => true });
+    const sandbox = new LinuxBubblewrapSandbox({
+      workspaceRoot: root,
+      bubblewrapPath: '/bin/true',
+      prlimitPath: '/bin/true',
+      probe: async () => true,
+    });
     await expect(
       sandbox.prepare({ ...plan(root), cwd: tmpdir() }, { argv: ['/bin/true'] }),
     ).rejects.toThrow('escapes');

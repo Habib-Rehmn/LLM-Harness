@@ -1,0 +1,15 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib",
+    "tsBuildInfoFile": "lib/extensions-core.tsbuildinfo"
+  },
+  "include": ["src/**/*.ts"],
+  "references": [
+    { "path": "../../kernel/contracts" },
+    { "path": "../../kernel/context" },
+    { "path": "../../llm/core" },
+    { "path": "../../tools/core" }
+  ]
+}

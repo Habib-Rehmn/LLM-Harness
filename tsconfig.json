@@ -8,6 +8,8 @@
     { "path": "./packages/kernel/plugin-loader" },
     { "path": "./packages/interfaces/core" },
     { "path": "./packages/llm/core" },
+    { "path": "./packages/memory/core" },
+    { "path": "./packages/extensions/core" },
     { "path": "./packages/agent/core" },
     { "path": "./packages/editor/core" },
     { "path": "./packages/providers/openai-compatible" },
